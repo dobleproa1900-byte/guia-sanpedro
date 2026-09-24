@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Guía Céntrica San Pedro | PWA</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Leaflet CSS & JS (Mapas 100% Gratis) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    #map { height: 260px; width: 100%; border-radius: 0.75rem; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen pb-12">
+
+  <!-- ENCABEZADO Y UBICACIÓN -->
+  <header class="bg-slate-800 border-b border-slate-700 p-4 sticky top-0 z-50">
+    <div class="max-w-md mx-auto flex justify-between items-center">
+      <div>
+        <h1 class="text-lg font-bold text-white flex items-center gap-2">
+          📍 Guía San Pedro
+        </h1>
+        <p class="text-xs text-slate-400" id="status-ubicacion">Ubicación aproximada: Centro</p>
+      </div>
+      <button onclick="obtenerUbicacion()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-all flex items-center gap-1 shadow">
+        🎯 Cerca de mí
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-md mx-auto px-4 pt-4 space-y-4">
+
+    <!-- CONTENEDOR DEL MAPA -->
+    <div class="bg-slate-800 p-2 rounded-xl border border-slate-700 shadow-md">
+      <div id="map"></div>
+    </div>
+
+    <!-- FILTROS POR CATEGORÍAS -->
+    <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-none text-xs font-medium">
+      <button onclick="filtrarCategoria('todas')" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg whitespace-nowrap">Todas</button>
+      <button onclick="filtrarCategoria('gastronomia')" class="bg-amber-600/80 hover:bg-amber-600 text-white px-3 py-2 rounded-lg whitespace-nowrap">🍽️ Bares & Restó</button>
+      <button onclick="filtrarCategoria('heladeria')" class="bg-pink-600/80 hover:bg-pink-600 text-white px-3 py-2 rounded-lg whitespace-nowrap">🍦 Heladerías</button>
+      <button onclick="filtrarCategoria('hotel')" class="bg-indigo-600/80 hover:bg-indigo-600 text-white px-3 py-2 rounded-lg whitespace-nowrap">🏨 Hoteles</button>
+      <button onclick="filtrarCategoria('farmacia')" class="bg-emerald-600/80 hover:bg-emerald-600 text-white px-3 py-2 rounded-lg whitespace-nowrap">💊 Farmacias</button>
+    </div>
+
+    <!-- LISTA DE COMERCIOS -->
+    <div id="lista-lugares" class="space-y-3">
+      <!-- Se carga dinámicamente con JavaScript -->
+    </div>
+
+  </main>
+
+  <script>
+    // 1. BASE DE DATOS DE COMERCIOS (SAN PEDRO)
+    const lugares = [
+      {
+        nombre: "Favela Grill",
+        cat: "gastronomia",
+        direccion: "Carlos Pellegrini 755",
+        lat: -33.6781, lng: -59.6672,
+        desc: "Parrilla, minutas y platos elaborados en pleno centro.",
+        tel: "5493329000000"
+      },
+      {
+        nombre: "Bar Butti San Pedro",
+        cat: "gastronomia",
+        direccion: "Bartolomé Mitre 898",
+        lat: -33.6775, lng: -59.6680,
+        desc: "Bar histórico, café y gastronomía tradicional.",
+        tel: "5493329000000"
+      },
+      {
+        nombre: "Heladería Cachin",
+        cat: "heladeria",
+        direccion: "Bartolomé Mitre 879",
+        lat: -33.6772, lng: -59.6678,
+        desc: "Helados artesanales de fabricación local.",
+        tel: "5493329000000"
+      },
+      {
+        nombre: "Helados Porta",
+        cat: "heladeria",
+        direccion: "Belgrano y Güemes",
+        lat: -33.6790, lng: -59.6655,
+        desc: "Heladería clásica sanpedrina.",
+        tel: "5493329000000"
+      },
+      {
+        nombre: "Howard Johnson Centro",
+        cat: "hotel",
+        direccion: "Bartolomé Mitre 425",
+        lat: -33.6750, lng: -59.6631,
+        desc: "Hotel céntrico con piscina, spa y restaurante.",
+        tel: "5493329000000"
+      },
+      {
+        nombre: "Farmacia Botta Centro",
+        cat: "farmacia",
+        direccion: "Carlos Pellegrini 485",
+        lat: -33.6765, lng: -59.6642,
+        desc: "Atención farmacéutica y perfumería céntrica.",
+        tel: "5493329000000"
+      }
+    ];
+
+    // 2. INICIALIZAR MAPA
+    let userLat = -33.6760;
+    let userLng = -59.6660; // Centro de San Pedro por defecto
+    let map = L.map('map').setView([userLat, userLng], 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    let markersGroup = L.layerGroup().addTo(map);
+    let userMarker = null;
+
+    // 3. FÓRMULA DE DISTANCIA (Haversine en KM)
+    function calcularDistancia(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return (R * c).toFixed(2);
+    }
+
+    // 4. RENDERIZAR LISTA Y MARCADORES EN EL MAPA
+    function renderizarLugares(categoriaFiltro = 'todas') {
+      markersGroup.clearLayers();
+      const contenedor = document.getElementById('lista-lugares');
+      contenedor.innerHTML = '';
+
+      // Calcular distancia actual a cada lugar
+      lugares.forEach(l => {
+        l.distancia = calcularDistancia(userLat, userLng, l.lat, l.lng);
+      });
+
+      // Ordenar por cercanía
+      const filtrados = lugares
+        .filter(l => categoriaFiltro === 'todas' || l.cat === categoriaFiltro)
+        .sort((a, b) => a.distancia - b.distancia);
+
+      filtrados.forEach(l => {
+        // Agregar PIN al mapa
+        L.marker([l.lat, l.lng])
+          .addTo(markersGroup)
+          .bindPopup(`<b>${l.nombre}</b><br>${l.direccion}`);
+
+        // Crear tarjeta HTML
+        const card = document.createElement('div');
+        card.className = "bg-slate-800 p-4 rounded-xl border border-slate-700 shadow hover:border-slate-600 transition-all flex justify-between items-start";
+        card.innerHTML = `
+          <div class="space-y-1 pr-2">
+            <div class="flex items-center gap-2">
+              <h3 class="font-bold text-white text-base">${l.nombre}</h3>
+              <span class="text-[10px] bg-slate-700 text-blue-300 px-2 py-0.5 rounded-full font-semibold">${l.distancia} km</span>
+            </div>
+            <p class="text-xs text-slate-400">📍 ${l.direccion}</p>
+            <p class="text-xs text-slate-300 pt-1">${l.desc}</p>
+          </div>
+          <a href="https://wa.me/${l.tel}?text=Hola!%20Los%20vi%20en%20la%20Guia%20San%20Pedro" target="_blank" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center justify-center shrink-0">
+            💬 Contactar
+          </a>
+        `;
+        contenedor.appendChild(card);
+      });
+    }
+
+    // 5. GEOLOCALIZACIÓN GPS DEL USUARIO
+    function obtenerUbicacion() {
+      const status = document.getElementById('status-ubicacion');
+      if ("geolocation" in navigator) {
+        status.innerText = "Obteniendo GPS...";
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            userLat = pos.coords.latitude;
+            userLng = pos.coords.longitude;
+            status.innerText = "📍 Ubicación detectada";
+
+            // Centrar mapa en el usuario
+            map.setView([userLat, userLng], 16);
+
+            // Marcador del usuario
+            if (userMarker) map.removeLayer(userMarker);
+            userMarker = L.circleMarker([userLat, userLng], {
+              radius: 8,
+              fillColor: "#2563eb",
+              color: "#ffffff",
+              weight: 2,
+              opacity: 1,
+              fillOpacity: 0.9
+            }).addTo(map).bindPopup("¡Estás acá!").openPopup();
+
+            renderizarLugares();
+          },
+          () => {
+            status.innerText = "⚠️ No se pudo obtener GPS (usando centro)";
+          }
+        );
+      }
+    }
+
+    function filtrarCategoria(cat) {
+      renderizarLugares(cat);
+    }
+
+    // Carga inicial
+    renderizarLugares();
+  </script>
+</body>
+</html>
