@@ -8,12 +8,12 @@
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Leaflet CSS & JS (Mapas 100% Gratis) -->
+  <!-- Leaflet CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
-    #map { height: 260px; width: 100%; border-radius: 0.75rem; }
+    #map { height: 240px; width: 100%; border-radius: 0.75rem; }
   </style>
 </head>
 <body class="bg-slate-900 text-slate-100 font-sans min-h-screen pb-12">
@@ -25,7 +25,7 @@
         <h1 class="text-lg font-bold text-white flex items-center gap-2">
           📍 Guía San Pedro
         </h1>
-        <p class="text-xs text-slate-400" id="status-ubicacion">Ubicación aproximada: Centro</p>
+        <p class="text-xs text-slate-400" id="status-ubicacion">Ubicación: Centro</p>
       </div>
       <button onclick="obtenerUbicacion()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-all flex items-center gap-1 shadow">
         🎯 Cerca de mí
@@ -33,15 +33,26 @@
     </div>
   </header>
 
-  <main class="max-w-md mx-auto px-4 pt-4 space-y-4">
+  <main class="max-w-md mx-auto px-4 pt-4 space-y-3">
 
     <!-- CONTENEDOR DEL MAPA -->
     <div class="bg-slate-800 p-2 rounded-xl border border-slate-700 shadow-md">
       <div id="map"></div>
     </div>
 
+    <!-- BUSCADOR POR TEXTO -->
+    <div class="relative">
+      <input 
+        type="text" 
+        id="input-busqueda" 
+        oninput="filtrarPorBusqueda()" 
+        placeholder="🔍 Buscar por nombre, plato o dirección..." 
+        class="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-400 text-xs rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 shadow-sm"
+      />
+    </div>
+
     <!-- FILTROS POR CATEGORÍAS -->
-    <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-none text-xs font-medium">
+    <div class="flex gap-2 overflow-x-auto pb-2 text-xs font-medium">
       <button onclick="filtrarCategoria('todas')" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg whitespace-nowrap">Todas</button>
       <button onclick="filtrarCategoria('gastronomia')" class="bg-amber-600/80 hover:bg-amber-600 text-white px-3 py-2 rounded-lg whitespace-nowrap">🍽️ Bares & Restó</button>
       <button onclick="filtrarCategoria('heladeria')" class="bg-pink-600/80 hover:bg-pink-600 text-white px-3 py-2 rounded-lg whitespace-nowrap">🍦 Heladerías</button>
@@ -51,13 +62,12 @@
 
     <!-- LISTA DE COMERCIOS -->
     <div id="lista-lugares" class="space-y-3">
-      <!-- Se carga dinámicamente con JavaScript -->
+      <!-- Se carga dinámicamente -->
     </div>
 
   </main>
 
   <script>
-    // 1. BASE DE DATOS DE COMERCIOS (SAN PEDRO)
     const lugares = [
       {
         nombre: "Favela Grill",
@@ -109,9 +119,8 @@
       }
     ];
 
-    // 2. INICIALIZAR MAPA
     let userLat = -33.6760;
-    let userLng = -59.6660; // Centro de San Pedro por defecto
+    let userLng = -59.6660;
     let map = L.map('map').setView([userLat, userLng], 15);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -121,7 +130,6 @@
     let markersGroup = L.layerGroup().addTo(map);
     let userMarker = null;
 
-    // 3. FÓRMULA DE DISTANCIA (Haversine en KM)
     function calcularDistancia(lat1, lon1, lat2, lon2) {
       const R = 6371;
       const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -133,31 +141,26 @@
       return (R * c).toFixed(2);
     }
 
-    // 4. RENDERIZAR LISTA Y MARCADORES EN EL MAPA
     function renderizarLugares(categoriaFiltro = 'todas') {
       markersGroup.clearLayers();
       const contenedor = document.getElementById('lista-lugares');
       contenedor.innerHTML = '';
 
-      // Calcular distancia actual a cada lugar
       lugares.forEach(l => {
         l.distancia = calcularDistancia(userLat, userLng, l.lat, l.lng);
       });
 
-      // Ordenar por cercanía
       const filtrados = lugares
         .filter(l => categoriaFiltro === 'todas' || l.cat === categoriaFiltro)
         .sort((a, b) => a.distancia - b.distancia);
 
       filtrados.forEach(l => {
-        // Agregar PIN al mapa
         L.marker([l.lat, l.lng])
           .addTo(markersGroup)
           .bindPopup(`<b>${l.nombre}</b><br>${l.direccion}`);
 
-        // Crear tarjeta HTML
         const card = document.createElement('div');
-        card.className = "bg-slate-800 p-4 rounded-xl border border-slate-700 shadow hover:border-slate-600 transition-all flex justify-between items-start";
+        card.className = "bg-slate-800 p-4 rounded-xl border border-slate-700 shadow flex justify-between items-start";
         card.innerHTML = `
           <div class="space-y-1 pr-2">
             <div class="flex items-center gap-2">
@@ -175,7 +178,6 @@
       });
     }
 
-    // 5. GEOLOCALIZACIÓN GPS DEL USUARIO
     function obtenerUbicacion() {
       const status = document.getElementById('status-ubicacion');
       if ("geolocation" in navigator) {
@@ -186,34 +188,59 @@
             userLng = pos.coords.longitude;
             status.innerText = "📍 Ubicación detectada";
 
-            // Centrar mapa en el usuario
             map.setView([userLat, userLng], 16);
 
-            // Marcador del usuario
             if (userMarker) map.removeLayer(userMarker);
             userMarker = L.circleMarker([userLat, userLng], {
-              radius: 8,
-              fillColor: "#2563eb",
-              color: "#ffffff",
-              weight: 2,
-              opacity: 1,
-              fillOpacity: 0.9
+              radius: 8, fillColor: "#2563eb", color: "#ffffff", weight: 2, opacity: 1, fillOpacity: 0.9
             }).addTo(map).bindPopup("¡Estás acá!").openPopup();
 
             renderizarLugares();
           },
-          () => {
-            status.innerText = "⚠️ No se pudo obtener GPS (usando centro)";
-          }
+          () => { status.innerText = "⚠️ Error de GPS"; }
         );
       }
     }
 
     function filtrarCategoria(cat) {
+      document.getElementById('input-busqueda').value = '';
       renderizarLugares(cat);
     }
 
-    // Carga inicial
+    function filtrarPorBusqueda() {
+      const texto = document.getElementById('input-busqueda').value.toLowerCase();
+      const filtrados = lugares.filter(l => 
+        l.nombre.toLowerCase().includes(texto) ||
+        l.desc.toLowerCase().includes(texto) ||
+        l.direccion.toLowerCase().includes(texto)
+      );
+
+      markersGroup.clearLayers();
+      const contenedor = document.getElementById('lista-lugares');
+      contenedor.innerHTML = '';
+
+      filtrados.forEach(l => {
+        L.marker([l.lat, l.lng]).addTo(markersGroup).bindPopup(`<b>${l.nombre}</b><br>${l.direccion}`);
+
+        const card = document.createElement('div');
+        card.className = "bg-slate-800 p-4 rounded-xl border border-slate-700 shadow flex justify-between items-start";
+        card.innerHTML = `
+          <div class="space-y-1 pr-2">
+            <div class="flex items-center gap-2">
+              <h3 class="font-bold text-white text-base">${l.nombre}</h3>
+              <span class="text-[10px] bg-slate-700 text-blue-300 px-2 py-0.5 rounded-full font-semibold">${l.distancia || ''} km</span>
+            </div>
+            <p class="text-xs text-slate-400">📍 ${l.direccion}</p>
+            <p class="text-xs text-slate-300 pt-1">${l.desc}</p>
+          </div>
+          <a href="https://wa.me/${l.tel}?text=Hola!%20Los%20vi%20en%20la%20Guia%20San%20Pedro" target="_blank" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center justify-center shrink-0">
+            💬 Contactar
+          </a>
+        `;
+        contenedor.appendChild(card);
+      });
+    }
+
     renderizarLugares();
   </script>
 </body>
