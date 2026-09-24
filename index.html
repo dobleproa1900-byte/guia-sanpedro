@@ -46,7 +46,7 @@
         type="text" 
         id="input-busqueda" 
         oninput="filtrarLugares()" 
-        placeholder="🔍 Buscar por nombre, dirección o producto..." 
+        placeholder="🔍 Buscar farmacia, heladería, restaurant..." 
         class="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-400 text-xs rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 shadow-sm"
       />
     </div>
@@ -54,10 +54,10 @@
     <!-- FILTROS POR CATEGORÍAS -->
     <div class="flex gap-2 overflow-x-auto pb-2 text-xs font-medium">
       <button onclick="seleccionarCategoria('todas')" class="btn-cat bg-blue-600 text-white px-3 py-2 rounded-lg whitespace-nowrap" data-cat="todas">Todas</button>
+      <button onclick="seleccionarCategoria('farmacia')" class="btn-cat bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg whitespace-nowrap" data-cat="farmacia">💊 Farmacias</button>
       <button onclick="seleccionarCategoria('gastronomia')" class="btn-cat bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg whitespace-nowrap" data-cat="gastronomia">🍽️ Bares & Restó</button>
       <button onclick="seleccionarCategoria('heladeria')" class="btn-cat bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg whitespace-nowrap" data-cat="heladeria">🍦 Heladerías</button>
       <button onclick="seleccionarCategoria('hotel')" class="btn-cat bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg whitespace-nowrap" data-cat="hotel">🏨 Hoteles</button>
-      <button onclick="seleccionarCategoria('farmacia')" class="btn-cat bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg whitespace-nowrap" data-cat="farmacia">💊 Farmacias</button>
     </div>
 
     <!-- LISTA DE COMERCIOS -->
@@ -68,27 +68,63 @@
   </main>
 
   <script>
+    // BASE DE DATOS DE SAN PEDRO
     const lugares = [
+      // FARMACIAS
+      {
+        nombre: "Farmacia Botta",
+        cat: "farmacia",
+        direccion: "Pellegrini 485",
+        lat: -33.6765, lng: -59.6642,
+        desc: "Atención farmacéutica, perfumería y medicamentos.",
+        tel: "5493329000000"
+      },
+      {
+        nombre: "Farmacia Gomendio",
+        cat: "farmacia",
+        direccion: "Mitre 902",
+        lat: -33.6778, lng: -59.6682,
+        desc: "Farmacia céntrica, recetas y atención integral.",
+        tel: "5493329000000"
+      },
+      {
+        nombre: "Farmacia Del Pueblo",
+        cat: "farmacia",
+        direccion: "Pellegrini 701",
+        lat: -33.6779, lng: -59.6668,
+        desc: "Medicamentos, obras sociales y perfumería.",
+        tel: "5493329000000"
+      },
+      {
+        nombre: "Farmacia Internacional",
+        cat: "farmacia",
+        direccion: "Mitre 498",
+        lat: -33.6752, lng: -59.6638,
+        desc: "Descuentos en medicamentos y atención rápida.",
+        tel: "5493329000000"
+      },
+      // GASTRONOMÍA
       {
         nombre: "Favela Grill",
         cat: "gastronomia",
-        direccion: "Carlos Pellegrini 755",
+        direccion: "Pellegrini 755",
         lat: -33.6781, lng: -59.6672,
-        desc: "Parrilla, minutas y platos elaborados en pleno centro.",
+        desc: "Parrilla, minutas y platos elaborados.",
         tel: "5493329000000"
       },
       {
-        nombre: "Bar Butti San Pedro",
+        nombre: "Bar Butti",
         cat: "gastronomia",
-        direccion: "Bartolomé Mitre 898",
+        direccion: "Mitre 898",
         lat: -33.6775, lng: -59.6680,
-        desc: "Bar histórico, café y gastronomía tradicional.",
+        desc: "Bar histórico, café y minuta tradicional.",
         tel: "5493329000000"
       },
+      // HELADERÍAS
       {
         nombre: "Heladería Cachin",
         cat: "heladeria",
-        direccion: "Bartolomé Mitre 879",
+        direccion: "Mitre 879",
         lat: -33.6772, lng: -59.6678,
         desc: "Helados artesanales de fabricación local.",
         tel: "5493329000000"
@@ -101,20 +137,13 @@
         desc: "Heladería clásica sanpedrina.",
         tel: "5493329000000"
       },
+      // HOTELES
       {
         nombre: "Howard Johnson Centro",
         cat: "hotel",
-        direccion: "Bartolomé Mitre 425",
+        direccion: "Mitre 425",
         lat: -33.6750, lng: -59.6631,
-        desc: "Hotel céntrico con piscina, spa y restaurante.",
-        tel: "5493329000000"
-      },
-      {
-        nombre: "Farmacia Botta Centro",
-        cat: "farmacia",
-        direccion: "Carlos Pellegrini 485",
-        lat: -33.6765, lng: -59.6642,
-        desc: "Atención farmacéutica y perfumería céntrica.",
+        desc: "Hotel céntrico con piscina y spa.",
         tel: "5493329000000"
       }
     ];
@@ -131,9 +160,8 @@
     let markersGroup = L.layerGroup().addTo(map);
     let userMarker = null;
 
-    // Normalizar texto (elimina tildes y convierte a minúsculas)
     function normalizar(texto) {
-      return (texto || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      return (texto || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
     }
 
     function calcularDistancia(lat1, lon1, lat2, lon2) {
@@ -147,7 +175,6 @@
       return (R * c).toFixed(2);
     }
 
-    // FUNCIÓN UNIFICADA DE FILTRADO (CATEGORÍA + BUSCADOR)
     function filtrarLugares() {
       markersGroup.clearLayers();
       const contenedor = document.getElementById('lista-lugares');
@@ -155,24 +182,28 @@
 
       const textoBusqueda = normalizar(document.getElementById('input-busqueda').value);
 
-      // 1. Calcular distancias
       lugares.forEach(l => {
         l.distancia = calcularDistancia(userLat, userLng, l.lat, l.lng);
       });
 
-      // 2. Filtrar simultáneamente por Categoría y por Texto
       const filtrados = lugares.filter(l => {
         const coincideCat = (categoriaActual === 'todas' || l.cat === categoriaActual);
-        const textoCompleto = normalizar(`${l.nombre} ${l.desc} ${l.direccion} ${l.cat}`);
-        const coincideTexto = textoCompleto.includes(textoBusqueda);
-        return coincideCat && coincideTexto;
-      }).sort((a, b) => a.distancia - b.distancia);
+        
+        // BÚSQUEDA PRECISA: Evalúa nombre, categoría y descripción
+        const enNombre = normalizar(l.nombre).includes(textoBusqueda);
+        const enCategoria = normalizar(l.cat).includes(textoBusqueda);
+        const enDesc = normalizar(l.desc).includes(textoBusqueda);
+        const enDireccion = normalizar(l.direccion).includes(textoBusqueda);
 
-      // 3. Renderizar resultados o mensaje de sin coincidencias
+        const coincideTexto = textoBusqueda === "" || enNombre || enCategoria || enDesc || enDireccion;
+        
+        return coincideCat && coincideTexto;
+      }).sort((a, b) => parseFloat(a.distancia) - parseFloat(b.distancia));
+
       if (filtrados.length === 0) {
         contenedor.innerHTML = `
           <div class="text-center py-8 text-slate-400 text-xs">
-            ⚠️ No se encontraron resultados para la búsqueda.
+            ⚠️ No se encontraron comercios para esa búsqueda.
           </div>`;
         return;
       }
@@ -203,7 +234,6 @@
 
     function seleccionarCategoria(cat) {
       categoriaActual = cat;
-      // Actualizar aspecto de los botones
       document.querySelectorAll('.btn-cat').forEach(b => {
         if (b.getAttribute('data-cat') === cat) {
           b.className = "btn-cat bg-blue-600 text-white px-3 py-2 rounded-lg whitespace-nowrap";
@@ -238,7 +268,6 @@
       }
     }
 
-    // Carga inicial
     filtrarLugares();
   </script>
 </body>
