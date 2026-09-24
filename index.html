@@ -46,7 +46,7 @@
         type="text" 
         id="input-busqueda" 
         oninput="filtrarLugares()" 
-        placeholder="🔍 Buscar farmacia, heladería, restaurant..." 
+        placeholder="🔍 Buscar hospital, taller, radio, comisaría, súper..." 
         class="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-400 text-xs rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 shadow-sm"
       />
     </div>
@@ -54,22 +54,145 @@
     <!-- FILTROS POR CATEGORÍAS -->
     <div class="flex gap-2 overflow-x-auto pb-2 text-xs font-medium">
       <button onclick="seleccionarCategoria('todas')" class="btn-cat bg-blue-600 text-white px-3 py-2 rounded-lg whitespace-nowrap" data-cat="todas">Todas</button>
+      <button onclick="seleccionarCategoria('salud')" class="btn-cat bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg whitespace-nowrap" data-cat="salud">🏥 Hospital / Salud</button>
+      <button onclick="seleccionarCategoria('seguridad')" class="btn-cat bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg whitespace-nowrap" data-cat="seguridad">🚔 Comisaría</button>
+      <button onclick="seleccionarCategoria('estacion')" class="btn-cat bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg whitespace-nowrap" data-cat="estacion">⛽ Estaciones</button>
+      <button onclick="seleccionarCategoria('supermercado')" class="btn-cat bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg whitespace-nowrap" data-cat="supermercado">🛒 Supermercados</button>
+      <button onclick="seleccionarCategoria('taller')" class="btn-cat bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg whitespace-nowrap" data-cat="taller">🛠️ Talleres</button>
+      <button onclick="seleccionarCategoria('carniceria')" class="btn-cat bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg whitespace-nowrap" data-cat="carniceria">🥩 Carnicerías</button>
+      <button onclick="seleccionarCategoria('radio')" class="btn-cat bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg whitespace-nowrap" data-cat="radio">📻 Radios</button>
       <button onclick="seleccionarCategoria('farmacia')" class="btn-cat bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg whitespace-nowrap" data-cat="farmacia">💊 Farmacias</button>
       <button onclick="seleccionarCategoria('gastronomia')" class="btn-cat bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg whitespace-nowrap" data-cat="gastronomia">🍽️ Bares & Restó</button>
-      <button onclick="seleccionarCategoria('heladeria')" class="btn-cat bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg whitespace-nowrap" data-cat="heladeria">🍦 Heladerías</button>
-      <button onclick="seleccionarCategoria('hotel')" class="btn-cat bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg whitespace-nowrap" data-cat="hotel">🏨 Hoteles</button>
     </div>
 
-    <!-- LISTA DE COMERCIOS -->
+    <!-- LISTA DE COMERCIOS Y SERVICIOS -->
     <div id="lista-lugares" class="space-y-3">
-      <!-- Se carga dinámicamente -->
+      <!-- Carga dinámica -->
     </div>
 
   </main>
 
   <script>
-    // BASE DE DATOS DE SAN PEDRO
+    // BASE DE DATOS AMPLIADA - SAN PEDRO
     const lugares = [
+      // HOSPITAL Y SALUD
+      {
+        nombre: "Hospital Subzonal Dr. Lino Piñeiro",
+        cat: "salud",
+        direccion: "25 de Mayo 1250",
+        lat: -33.6815, lng: -59.6608,
+        desc: "Hospital público, guardia 24hs y emergencias médicas.",
+        tel: "5493329420000"
+      },
+
+      // SEGURIDAD / COMISARÍA
+      {
+        nombre: "Comisaría San Pedro - Policía",
+        cat: "seguridad",
+        direccion: "Mitre y Mitre 400 (Mitre y Las Heras)",
+        lat: -33.6758, lng: -59.6625,
+        desc: "Comisaría principal, denuncias y emergencias policiales.",
+        tel: "5493329425222"
+      },
+
+      // ESTACIONES DE SERVICIO
+      {
+        nombre: "Estación YPF Centro",
+        cat: "estacion",
+        direccion: "Pellegrini y Olivieri",
+        lat: -33.6802, lng: -59.6635,
+        desc: "Combustibles, nafta, gasoil, Full shop y lubricantes.",
+        tel: "5493329000000"
+      },
+      {
+        nombre: "Estación Shell San Pedro",
+        cat: "estacion",
+        direccion: "Mitre y 3 de Febrero",
+        lat: -33.6768, lng: -59.6705,
+        desc: "Combustibles V-Power, tienda de compras y servicios.",
+        tel: "5493329000000"
+      },
+      {
+        nombre: "Estación Axion Energy",
+        cat: "estacion",
+        direccion: "Av. Sarmiento y 11 de Septiembre",
+        lat: -33.6732, lng: -59.6588,
+        desc: "Carga de combustible, nafta, diésel y tienda Spot.",
+        tel: "5493329000000"
+      },
+
+      // SUPERMERCADOS
+      {
+        nombre: "Supermercado Vea",
+        cat: "supermercado",
+        direccion: "Pellegrini y B. Mitre",
+        lat: -33.6770, lng: -59.6650,
+        desc: "Almacén, comestibles, rotisería y ofertas diarias.",
+        tel: "5493329000000"
+      },
+      {
+        nombre: "Supermercado San Pedro",
+        cat: "supermercado",
+        direccion: "Mitre 1150",
+        lat: -33.6789, lng: -59.6710,
+        desc: "Supermercado autoservicio, bebidas y bazar.",
+        tel: "5493329000000"
+      },
+
+      // TALLERES MECÁNICOS
+      {
+        nombre: "Taller Mecánico Multimarca",
+        cat: "taller",
+        direccion: "3 de Febrero 850",
+        lat: -33.6785, lng: -59.6690,
+        desc: "Mecánica general, inyección electrónica y frenos.",
+        tel: "5493329000000"
+      },
+      {
+        nombre: "Gomería y Mecánica Ligera Centro",
+        cat: "taller",
+        direccion: "Pellegrini 1020",
+        lat: -33.6810, lng: -59.6680,
+        desc: "Reparación de neumáticos, alineación y balanceo.",
+        tel: "5493329000000"
+      },
+
+      // CARNICERÍAS
+      {
+        nombre: "Carnicería El Buen Corte",
+        cat: "carniceria",
+        direccion: "Mitre 750",
+        lat: -33.6771, lng: -59.6665,
+        desc: "Cortes vacunos frescos, cerdo y elaboración de chorizos.",
+        tel: "5493329000000"
+      },
+      {
+        nombre: "Carnicería y Granja San Pedro",
+        cat: "carniceria",
+        direccion: "Pellegrini 620",
+        lat: -33.6775, lng: -59.6655,
+        desc: "Pollo, carne vacuna, milanesas preparadas y achuras.",
+        tel: "5493329000000"
+      },
+
+      // RADIOS LOCALES
+      {
+        nombre: "Radio APA / La Radio 92.3",
+        cat: "radio",
+        direccion: "Ayacucho 380",
+        lat: -33.6745, lng: -59.6620,
+        desc: "Radio local FM 92.3 Mhz, noticias e información al instante.",
+        tel: "5493329420100"
+      },
+      {
+        nombre: "Radio Cuarentena FM 88.7",
+        cat: "radio",
+        direccion: "San Martin 220",
+        lat: -33.6755, lng: -59.6610,
+        desc: "Emisora local FM, música y cobertura periodística.",
+        tel: "5493329000000"
+      },
+
       // FARMACIAS
       {
         nombre: "Farmacia Botta",
@@ -87,22 +210,7 @@
         desc: "Farmacia céntrica, recetas y atención integral.",
         tel: "5493329000000"
       },
-      {
-        nombre: "Farmacia Del Pueblo",
-        cat: "farmacia",
-        direccion: "Pellegrini 701",
-        lat: -33.6779, lng: -59.6668,
-        desc: "Medicamentos, obras sociales y perfumería.",
-        tel: "5493329000000"
-      },
-      {
-        nombre: "Farmacia Internacional",
-        cat: "farmacia",
-        direccion: "Mitre 498",
-        lat: -33.6752, lng: -59.6638,
-        desc: "Descuentos en medicamentos y atención rápida.",
-        tel: "5493329000000"
-      },
+
       // GASTRONOMÍA
       {
         nombre: "Favela Grill",
@@ -118,32 +226,6 @@
         direccion: "Mitre 898",
         lat: -33.6775, lng: -59.6680,
         desc: "Bar histórico, café y minuta tradicional.",
-        tel: "5493329000000"
-      },
-      // HELADERÍAS
-      {
-        nombre: "Heladería Cachin",
-        cat: "heladeria",
-        direccion: "Mitre 879",
-        lat: -33.6772, lng: -59.6678,
-        desc: "Helados artesanales de fabricación local.",
-        tel: "5493329000000"
-      },
-      {
-        nombre: "Helados Porta",
-        cat: "heladeria",
-        direccion: "Belgrano y Güemes",
-        lat: -33.6790, lng: -59.6655,
-        desc: "Heladería clásica sanpedrina.",
-        tel: "5493329000000"
-      },
-      // HOTELES
-      {
-        nombre: "Howard Johnson Centro",
-        cat: "hotel",
-        direccion: "Mitre 425",
-        lat: -33.6750, lng: -59.6631,
-        desc: "Hotel céntrico con piscina y spa.",
         tel: "5493329000000"
       }
     ];
@@ -189,13 +271,28 @@
       const filtrados = lugares.filter(l => {
         const coincideCat = (categoriaActual === 'todas' || l.cat === categoriaActual);
         
-        // BÚSQUEDA PRECISA: Evalúa nombre, categoría y descripción
         const enNombre = normalizar(l.nombre).includes(textoBusqueda);
         const enCategoria = normalizar(l.cat).includes(textoBusqueda);
         const enDesc = normalizar(l.desc).includes(textoBusqueda);
         const enDireccion = normalizar(l.direccion).includes(textoBusqueda);
 
-        const coincideTexto = textoBusqueda === "" || enNombre || enCategoria || enDesc || enDireccion;
+        // Mapeo inteligente de sinónimos
+        let coincideSinonimo = false;
+        if (textoBusqueda.includes("hospital") || textoBusqueda.includes("guardia") || textoBusqueda.includes("medico") || textoBusqueda.includes("salud")) {
+          coincideSinonimo = (l.cat === "salud");
+        } else if (textoBusqueda.includes("comisaria") || textoBusqueda.includes("policia") || textoBusqueda.includes("patrulla")) {
+          coincideSinonimo = (l.cat === "seguridad");
+        } else if (textoBusqueda.includes("mecanico") || textoBusqueda.includes("gomeria") || textoBusqueda.includes("auto") || textoBusqueda.includes("taller")) {
+          coincideSinonimo = (l.cat === "taller");
+        } else if (textoBusqueda.includes("carne") || textoBusqueda.includes("asado") || textoBusqueda.includes("carniceria")) {
+          coincideSinonimo = (l.cat === "carniceria");
+        } else if (textoBusqueda.includes("super") || textoBusqueda.includes("mercado") || textoBusqueda.includes("almacen")) {
+          coincideSinonimo = (l.cat === "supermercado");
+        } else if (textoBusqueda.includes("radio") || textoBusqueda.includes("fm") || textoBusqueda.includes("noticias")) {
+          coincideSinonimo = (l.cat === "radio");
+        }
+
+        const coincideTexto = textoBusqueda === "" || enNombre || enCategoria || enDesc || enDireccion || coincideSinonimo;
         
         return coincideCat && coincideTexto;
       }).sort((a, b) => parseFloat(a.distancia) - parseFloat(b.distancia));
@@ -203,7 +300,7 @@
       if (filtrados.length === 0) {
         contenedor.innerHTML = `
           <div class="text-center py-8 text-slate-400 text-xs">
-            ⚠️ No se encontraron comercios para esa búsqueda.
+            ⚠️ No se encontraron resultados para la búsqueda.
           </div>`;
         return;
       }
