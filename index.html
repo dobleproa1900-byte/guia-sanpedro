@@ -40,24 +40,24 @@
       <div id="map"></div>
     </div>
 
-    <!-- BUSCADOR POR TEXTO -->
+    <!-- BUSCADOR POR TEXTO EN TIEMPO REAL -->
     <div class="relative">
       <input 
         type="text" 
         id="input-busqueda" 
-        oninput="filtrarPorBusqueda()" 
-        placeholder="🔍 Buscar por nombre, plato o dirección..." 
+        oninput="filtrarLugares()" 
+        placeholder="🔍 Buscar por nombre, dirección o producto..." 
         class="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-400 text-xs rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 shadow-sm"
       />
     </div>
 
     <!-- FILTROS POR CATEGORÍAS -->
     <div class="flex gap-2 overflow-x-auto pb-2 text-xs font-medium">
-      <button onclick="filtrarCategoria('todas')" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg whitespace-nowrap">Todas</button>
-      <button onclick="filtrarCategoria('gastronomia')" class="bg-amber-600/80 hover:bg-amber-600 text-white px-3 py-2 rounded-lg whitespace-nowrap">🍽️ Bares & Restó</button>
-      <button onclick="filtrarCategoria('heladeria')" class="bg-pink-600/80 hover:bg-pink-600 text-white px-3 py-2 rounded-lg whitespace-nowrap">🍦 Heladerías</button>
-      <button onclick="filtrarCategoria('hotel')" class="bg-indigo-600/80 hover:bg-indigo-600 text-white px-3 py-2 rounded-lg whitespace-nowrap">🏨 Hoteles</button>
-      <button onclick="filtrarCategoria('farmacia')" class="bg-emerald-600/80 hover:bg-emerald-600 text-white px-3 py-2 rounded-lg whitespace-nowrap">💊 Farmacias</button>
+      <button onclick="seleccionarCategoria('todas')" class="btn-cat bg-blue-600 text-white px-3 py-2 rounded-lg whitespace-nowrap" data-cat="todas">Todas</button>
+      <button onclick="seleccionarCategoria('gastronomia')" class="btn-cat bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg whitespace-nowrap" data-cat="gastronomia">🍽️ Bares & Restó</button>
+      <button onclick="seleccionarCategoria('heladeria')" class="btn-cat bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg whitespace-nowrap" data-cat="heladeria">🍦 Heladerías</button>
+      <button onclick="seleccionarCategoria('hotel')" class="btn-cat bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg whitespace-nowrap" data-cat="hotel">🏨 Hoteles</button>
+      <button onclick="seleccionarCategoria('farmacia')" class="btn-cat bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg whitespace-nowrap" data-cat="farmacia">💊 Farmacias</button>
     </div>
 
     <!-- LISTA DE COMERCIOS -->
@@ -121,14 +121,20 @@
 
     let userLat = -33.6760;
     let userLng = -59.6660;
-    let map = L.map('map').setView([userLat, userLng], 15);
+    let categoriaActual = 'todas';
 
+    let map = L.map('map').setView([userLat, userLng], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap'
     }).addTo(map);
 
     let markersGroup = L.layerGroup().addTo(map);
     let userMarker = null;
+
+    // Normalizar texto (elimina tildes y convierte a minúsculas)
+    function normalizar(texto) {
+      return (texto || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
 
     function calcularDistancia(lat1, lon1, lat2, lon2) {
       const R = 6371;
@@ -141,18 +147,35 @@
       return (R * c).toFixed(2);
     }
 
-    function renderizarLugares(categoriaFiltro = 'todas') {
+    // FUNCIÓN UNIFICADA DE FILTRADO (CATEGORÍA + BUSCADOR)
+    function filtrarLugares() {
       markersGroup.clearLayers();
       const contenedor = document.getElementById('lista-lugares');
       contenedor.innerHTML = '';
 
+      const textoBusqueda = normalizar(document.getElementById('input-busqueda').value);
+
+      // 1. Calcular distancias
       lugares.forEach(l => {
         l.distancia = calcularDistancia(userLat, userLng, l.lat, l.lng);
       });
 
-      const filtrados = lugares
-        .filter(l => categoriaFiltro === 'todas' || l.cat === categoriaFiltro)
-        .sort((a, b) => a.distancia - b.distancia);
+      // 2. Filtrar simultáneamente por Categoría y por Texto
+      const filtrados = lugares.filter(l => {
+        const coincideCat = (categoriaActual === 'todas' || l.cat === categoriaActual);
+        const textoCompleto = normalizar(`${l.nombre} ${l.desc} ${l.direccion} ${l.cat}`);
+        const coincideTexto = textoCompleto.includes(textoBusqueda);
+        return coincideCat && coincideTexto;
+      }).sort((a, b) => a.distancia - b.distancia);
+
+      // 3. Renderizar resultados o mensaje de sin coincidencias
+      if (filtrados.length === 0) {
+        contenedor.innerHTML = `
+          <div class="text-center py-8 text-slate-400 text-xs">
+            ⚠️ No se encontraron resultados para la búsqueda.
+          </div>`;
+        return;
+      }
 
       filtrados.forEach(l => {
         L.marker([l.lat, l.lng])
@@ -178,6 +201,19 @@
       });
     }
 
+    function seleccionarCategoria(cat) {
+      categoriaActual = cat;
+      // Actualizar aspecto de los botones
+      document.querySelectorAll('.btn-cat').forEach(b => {
+        if (b.getAttribute('data-cat') === cat) {
+          b.className = "btn-cat bg-blue-600 text-white px-3 py-2 rounded-lg whitespace-nowrap";
+        } else {
+          b.className = "btn-cat bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg whitespace-nowrap";
+        }
+      });
+      filtrarLugares();
+    }
+
     function obtenerUbicacion() {
       const status = document.getElementById('status-ubicacion');
       if ("geolocation" in navigator) {
@@ -195,53 +231,15 @@
               radius: 8, fillColor: "#2563eb", color: "#ffffff", weight: 2, opacity: 1, fillOpacity: 0.9
             }).addTo(map).bindPopup("¡Estás acá!").openPopup();
 
-            renderizarLugares();
+            filtrarLugares();
           },
           () => { status.innerText = "⚠️ Error de GPS"; }
         );
       }
     }
 
-    function filtrarCategoria(cat) {
-      document.getElementById('input-busqueda').value = '';
-      renderizarLugares(cat);
-    }
-
-    function filtrarPorBusqueda() {
-      const texto = document.getElementById('input-busqueda').value.toLowerCase();
-      const filtrados = lugares.filter(l => 
-        l.nombre.toLowerCase().includes(texto) ||
-        l.desc.toLowerCase().includes(texto) ||
-        l.direccion.toLowerCase().includes(texto)
-      );
-
-      markersGroup.clearLayers();
-      const contenedor = document.getElementById('lista-lugares');
-      contenedor.innerHTML = '';
-
-      filtrados.forEach(l => {
-        L.marker([l.lat, l.lng]).addTo(markersGroup).bindPopup(`<b>${l.nombre}</b><br>${l.direccion}`);
-
-        const card = document.createElement('div');
-        card.className = "bg-slate-800 p-4 rounded-xl border border-slate-700 shadow flex justify-between items-start";
-        card.innerHTML = `
-          <div class="space-y-1 pr-2">
-            <div class="flex items-center gap-2">
-              <h3 class="font-bold text-white text-base">${l.nombre}</h3>
-              <span class="text-[10px] bg-slate-700 text-blue-300 px-2 py-0.5 rounded-full font-semibold">${l.distancia || ''} km</span>
-            </div>
-            <p class="text-xs text-slate-400">📍 ${l.direccion}</p>
-            <p class="text-xs text-slate-300 pt-1">${l.desc}</p>
-          </div>
-          <a href="https://wa.me/${l.tel}?text=Hola!%20Los%20vi%20en%20la%20Guia%20San%20Pedro" target="_blank" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center justify-center shrink-0">
-            💬 Contactar
-          </a>
-        `;
-        contenedor.appendChild(card);
-      });
-    }
-
-    renderizarLugares();
+    // Carga inicial
+    filtrarLugares();
   </script>
 </body>
 </html>
